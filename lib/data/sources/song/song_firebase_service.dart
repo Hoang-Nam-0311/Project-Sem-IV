@@ -149,39 +149,50 @@ class SongFirebaseServiceImpl extends SongFirebaseService {
   }
 
   @override
-  Future < Either > getUserFavoriteSongs() async {
+  Future<Either> getUserFavoriteSongs() async {
     try {
       final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
       final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
       var user = firebaseAuth.currentUser;
+
+      if (user == null) {
+        return const Left('User not authenticated');
+      }
+
       List<SongEntity> favoriteSongs = [];
-      String uId = user!.uid;
-      QuerySnapshot favoritesSnapshot = await firebaseFirestore.collection(
-        'Users'
-      ).doc(uId)
-      .collection('Favorites')
-      .get();
+      String uId = user.uid;
+      QuerySnapshot favoritesSnapshot = await firebaseFirestore
+          .collection('Users')
+          .doc(uId)
+          .collection('Favorites')
+          .get();
+
+      if (favoritesSnapshot.docs.isEmpty) {
+        return const Left('No favorite songs found');
+      }
 
       for (var element in favoritesSnapshot.docs) {
         String songId = element['songId'];
-        var song = await firebaseFirestore.collection('Songs').doc(songId).get();
+        var song =
+            await firebaseFirestore.collection('Songs').doc(songId).get();
+
+        if (!song.exists) {
+          continue; // Skip if the song doesn't exist
+        }
+
         SongModel songModel = SongModel.fromJson(song.data()!);
         songModel.isFavorite = true;
         songModel.songId = songId;
-        favoriteSongs.add(
-          songModel.toEntity()
-        );
+        favoriteSongs.add(songModel.toEntity());
       }
 
       return Right(favoriteSongs);
-
     } catch (e) {
-      
-      return const Left(
-        'An error occurred'
-      );
+      // print('Error fetching favorite songs: $e'); // Log error
+      return Left('An error occurred: $e');
     }
   }
+
 
    @override
   Future<Either> getRankingSongs() async {
