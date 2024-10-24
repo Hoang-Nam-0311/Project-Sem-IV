@@ -10,7 +10,7 @@ import 'package:spotify_app/presentation/song_player/bloc/song_player_state.dart
 import 'package:http/http.dart' as http; // Import package http
 import 'dart:io';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart'; 
+import 'package:path_provider/path_provider.dart';
 import '../../../core/configs/constants/app_urls.dart';
 // import '../../../core/configs/theme/app_colors.dart';
 // ignore: unused_import
@@ -266,58 +266,59 @@ class SongPlayerPage extends StatelessWidget {
 
   // Phương thức trích xuất lời bài hát từ file MP3
  Future<String> extractLyricsFromMp3(String songUrl) async {
-    try {
-      // Tải file MP3 từ Firebase
-      final response = await http.get(Uri.parse('$songUrl?alt=media'));
-      print('Song URL: $songUrl');
-      if (response.statusCode != 200) {
-        print('Không thể tải tệp MP3, mã lỗi: ${response.statusCode}');
-        return 'Không thể tải tệp MP3.';
-      }
-
-      // Lưu file MP3 vào hệ thống tệp cục bộ
-      final tempDir = await getTemporaryDirectory();
-      String mp3FilePath = path.join(tempDir.path, 'temp_song.mp3');
-      final File mp3File = File(mp3FilePath);
-      await mp3File.writeAsBytes(response.bodyBytes);
-print('MP3 file path: $mp3FilePath');
-      // Đường dẫn lưu tệp lời bài hát
-      String outputFilePath = path.join(tempDir.path, 'lyrics.srt');
-
-      // Lệnh FFmpeg
-      final command =
-          '-i "$mp3FilePath" -vn -acodec copy "$outputFilePath"'; // Lưu tệp âm thanh dưới dạng
-
-      print('Running FFmpeg command: $command'); // In lệnh
-
-      // Trích xuất lời bài hát bằng FFmpeg
-      final session = await FFmpegKit.execute(command);
-      
-      // Kiểm tra kết quả của phiên FFmpeg
-      final returnCode = await session.getReturnCode();
-      print('Return Code: $returnCode'); // In mã trả về
-
-      if (ReturnCode.isSuccess(returnCode)) {
-        // Đọc lyrics từ file
-        final lyricsFile = File(outputFilePath);
-        if (await lyricsFile.exists()) {
-          String lyrics = await lyricsFile.readAsString();
-          print('Lyrics: $lyrics');
-          return lyrics; // Trả về lời bài hát đã trích xuất
-        } else {
-          print('File lyrics.srt không tồn tại.');
-          return 'Không tìm thấy tệp lời bài hát.';
-        }
-      } else {
-        // In thêm thông tin lỗi từ FFmpeg nếu có
-        print('Lỗi khi trích xuất lời bài hát. Vui lòng kiểm tra tệp MP3');
-        return 'Lỗi khi trích xuất lời bài hát. Vui lòng kiểm tra tệp MP3';
-      }
-
-    } catch (e) {
-      return 'Lỗi: $e';
+  try {
+    // Tải file MP3 từ Firebase
+    final response = await http.get(Uri.parse('$songUrl?alt=media'));
+    print('Song URL: $songUrl');
+    if (response.statusCode != 200) {
+      print('Không thể tải tệp MP3, mã lỗi: ${response.statusCode}');
+      return 'Không thể tải tệp MP3.';
     }
+
+    // Lưu file MP3 vào hệ thống tệp cục bộ
+    final tempDir = await getTemporaryDirectory();
+    String mp3FilePath = path.join(tempDir.path, 'temp_song.mp3');
+    final File mp3File = File(mp3FilePath);
+    await mp3File.writeAsBytes(response.bodyBytes);
+    print('MP3 file path: $mp3FilePath');
+
+    // Đường dẫn lưu tệp lời bài hát
+    String outputFilePath = path.join(tempDir.path, 'lyrics.srt');
+
+    // Lệnh FFmpeg
+    final command = '-i "$mp3FilePath" -vn "$outputFilePath"'; // Sử dụng 'subtitles' để trích xuất lời bài hát
+    print('Running FFmpeg command: $command'); // In lệnh
+
+    // Trích xuất lời bài hát bằng FFmpeg
+    final session = await FFmpegKit.execute(command);
+
+    // Kiểm tra kết quả của phiên FFmpeg
+    final returnCode = await session.getReturnCode();
+    print('Return Code: $returnCode'); // In mã trả về
+
+    if (ReturnCode.isSuccess(returnCode)) {
+      // Đọc lyrics từ file
+      final lyricsFile = File(outputFilePath);
+      if (await lyricsFile.exists()) {
+        String lyrics = await lyricsFile.readAsString();
+        print('Lyrics: $lyrics');
+        return lyrics; // Trả về lời bài hát đã trích xuất
+      } else {
+        print('File lyrics.srt không tồn tại.');
+        return 'Không tìm thấy tệp lời bài hát.';
+      }
+    } else {
+      // In thêm thông tin lỗi từ FFmpeg nếu có
+      print('Lỗi khi trích xuất lời bài hát. Vui lòng kiểm tra tệp MP3');
+      final sessionLogs = await session.getOutput();
+      print('FFmpeg Log Output: $sessionLogs');
+      return 'Lỗi khi trích xuất lời bài hát. Vui lòng kiểm tra tệp MP3';
+    }
+  } catch (e) {
+    print('Exception: $e');
+    return 'Lỗi: $e';
   }
+}
 
 
 
