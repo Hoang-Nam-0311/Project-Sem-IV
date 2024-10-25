@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:flutter/material.dart';
@@ -185,7 +186,7 @@ class SongPlayerPage extends StatelessWidget {
                     icon: const Icon(Icons.timer,
                         size: 30, color: Color.fromARGB(255, 255, 255, 255)),
                     onPressed: () {
-                      // Logic for liking the song
+                      
                     },
                   ),
                 ],
@@ -200,14 +201,14 @@ class SongPlayerPage extends StatelessWidget {
                     icon: const Icon(Icons.share,
                         size: 30, color: Color.fromARGB(255, 255, 255, 255)),
                     onPressed: () {
-                      // Logic for sharing the song
+                     
                     },
                   ),
                   IconButton(
                     icon: const Icon(Icons.bluetooth_connected,
                         size: 30, color: Color.fromARGB(255, 255, 255, 255)),
                     onPressed: () {
-                      // Logic for connecting device
+                      
                     },
                   ),
                 ],
@@ -216,8 +217,8 @@ class SongPlayerPage extends StatelessWidget {
                 height: 30,
               ),
               FutureBuilder<String>(
-                future: extractLyricsFromMp3(
-                    '${AppURLs.songFirestorage}${Uri.encodeComponent(songEntity.title)}-${Uri.encodeComponent(songEntity.artist)}.mp3?${AppURLs.mediaAlt}'),
+                future: fetchLyricsFromFirebase(
+                    songEntity.songId), // Sử dụng songId
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -255,6 +256,7 @@ class SongPlayerPage extends StatelessWidget {
                   }
                 },
               ),
+
             ],
           );
         }
@@ -265,60 +267,32 @@ class SongPlayerPage extends StatelessWidget {
   }
 
   // Phương thức trích xuất lời bài hát từ file MP3
- Future<String> extractLyricsFromMp3(String songUrl) async {
-  try {
-    // Tải file MP3 từ Firebase
-    final response = await http.get(Uri.parse('$songUrl?alt=media'));
-    print('Song URL: $songUrl');
-    if (response.statusCode != 200) {
-      print('Không thể tải tệp MP3, mã lỗi: ${response.statusCode}');
-      return 'Không thể tải tệp MP3.';
-    }
-
-    // Lưu file MP3 vào hệ thống tệp cục bộ
-    final tempDir = await getTemporaryDirectory();
-    String mp3FilePath = path.join(tempDir.path, 'temp_song.mp3');
-    final File mp3File = File(mp3FilePath);
-    await mp3File.writeAsBytes(response.bodyBytes);
-    print('MP3 file path: $mp3FilePath');
-
-    // Đường dẫn lưu tệp lời bài hát
-    String outputFilePath = path.join(tempDir.path, 'lyrics.srt');
-
-    // Lệnh FFmpeg
-    final command = '-i "$mp3FilePath" -vn "$outputFilePath"'; // Sử dụng 'subtitles' để trích xuất lời bài hát
-    print('Running FFmpeg command: $command'); // In lệnh
-
-    // Trích xuất lời bài hát bằng FFmpeg
-    final session = await FFmpegKit.execute(command);
-
-    // Kiểm tra kết quả của phiên FFmpeg
-    final returnCode = await session.getReturnCode();
-    print('Return Code: $returnCode'); // In mã trả về
-
-    if (ReturnCode.isSuccess(returnCode)) {
-      // Đọc lyrics từ file
-      final lyricsFile = File(outputFilePath);
-      if (await lyricsFile.exists()) {
-        String lyrics = await lyricsFile.readAsString();
-        print('Lyrics: $lyrics');
-        return lyrics; // Trả về lời bài hát đã trích xuất
-      } else {
-        print('File lyrics.srt không tồn tại.');
-        return 'Không tìm thấy tệp lời bài hát.';
+Future<String> fetchLyricsFromFirebase(String songId) async {
+    try {
+      // Kiểm tra songId có hợp lệ không
+      if (songId.isEmpty) {
+        return 'songId không hợp lệ.';
       }
-    } else {
-      // In thêm thông tin lỗi từ FFmpeg nếu có
-      print('Lỗi khi trích xuất lời bài hát. Vui lòng kiểm tra tệp MP3');
-      final sessionLogs = await session.getOutput();
-      print('FFmpeg Log Output: $sessionLogs');
-      return 'Lỗi khi trích xuất lời bài hát. Vui lòng kiểm tra tệp MP3';
+
+      // Truy cập Firestore
+      final songDoc = await FirebaseFirestore.instance
+          .collection('Songs')
+          .doc(songId) // Sử dụng songId làm ID tài liệu
+          .get();
+
+      if (songDoc.exists) {
+        final lyrics = songDoc.data()?['lyric'] ?? '';
+        return lyrics.isNotEmpty ? lyrics : 'Không có lời bài hát.';
+      } else {
+        return 'Không tìm thấy bài hát.';
+      }
+    } catch (e) {
+      print('Exception: $e');
+      return 'Lỗi: $e';
     }
-  } catch (e) {
-    print('Exception: $e');
-    return 'Lỗi: $e';
   }
-}
+
+
 
 
 

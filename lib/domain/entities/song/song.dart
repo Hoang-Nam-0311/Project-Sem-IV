@@ -7,7 +7,7 @@ class SongEntity {
   final Timestamp releaseDate;
   final bool isFavorite;
   final String songId;
-  // int playCount;
+  final String lyric;
 
   SongEntity({
     required this.title,
@@ -16,6 +16,6 @@ class SongEntity {
     required this.releaseDate,
     required this.isFavorite,
     required this.songId,
-    // this.playCount = 0,
+    required this.lyric,
   });
 }

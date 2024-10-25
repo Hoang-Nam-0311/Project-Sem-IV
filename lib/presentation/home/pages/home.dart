@@ -17,65 +17,113 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+  int _selectedIndex = 0; // chỉ số của trang hiện tại trong BottomNavigationBar
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
   }
-  
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: BasicAppbar(
+      appBar: BasicAppbar(
         hideBack: true,
-        action: IconButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (BuildContext context) => const ProfilePage())
-            );
-          },
-          icon: const Icon(
-            Icons.person
-          )
-        ),
-        title: SvgPicture.asset(
-          AppVectors.logo,
-          height: 40,
-          width: 40,
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _homeTopCard(),
-            _tabs(),
-            SizedBox(
-              height: 260,
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  const NewsSongs(),
-                  const ArtistsTab(),
-                  Container(),
-                  // Container()
-                ],
-              ),
+            IconButton(
+              onPressed: () {
+                // Hành động tìm kiếm (có thể thay thế bằng hành động cụ thể)
+              },
+              icon: const Icon(Icons.search), // Biểu tượng tìm kiếm
             ),
-            const PlayList(),
-            SizedBox(height: 16.0),
-            // const RankingPage(),
+            SvgPicture.asset(
+              AppVectors.logo,
+              height: 40,
+              width: 40,
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => const ProfilePage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person), // Biểu tượng người dùng
+            ),
           ],
         ),
+      ),
+      body: _selectedIndex == 0
+          ? _homeContent()
+          : _selectedIndex == 1
+              ? const Center(child: Text("The library is awaiting development"))
+              : const Center(child: Text("The ranking is awaiting development")),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.library_music),
+            label: 'Library',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star), // Biểu tượng cho mục Ranking
+            label: 'Ranking', // Nhãn cho mục Ranking
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.grey, // Màu cho các mục không được chọn
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed, // Không có hiệu ứng nhấn
       ),
     );
   }
 
-  Widget _homeTopCard(){
+  Widget _homeContent() {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _homeTopCard(),
+          _tabs(),
+          SizedBox(
+            height: 260,
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                NewsSongs(),
+                ArtistsTab(),
+                Center(child: Text('Listen to music, never podcasts')),
+                // Xem thêm các nội dung khác
+              ],
+            ),
+          ),
+          const PlayList(),
+          const SizedBox(height: 16.0),
+          // const RankingPage(),
+        ],
+      ),
+    );
+  }
+
+  Widget _homeTopCard() {
     return Center(
       child: SizedBox(
         height: 140,
@@ -83,19 +131,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           children: [
             Align(
               alignment: Alignment.bottomCenter,
-              child: SvgPicture.asset(
-                AppVectors.homeTopCard
-              ),
+              child: SvgPicture.asset(AppVectors.homeTopCard),
             ),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(
-                padding: const EdgeInsets.only(
-                  right: 60
-                ),
-                child: Image.asset(
-                  AppImages.homeArtist
-                ),
+                padding: const EdgeInsets.only(right: 60),
+                child: Image.asset(AppImages.homeArtist),
               ),
             )
           ],
@@ -110,39 +152,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       isScrollable: true,
       labelColor: context.isDarkMode ? Colors.white : Colors.black,
       indicatorColor: AppColors.primary,
-      padding: const EdgeInsets.symmetric(
-        vertical: 30
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 30),
       tabs: const [
         Text(
           'Recently',
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16
-          ),
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
         ),
-        
         Text(
           'Artist',
-           style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16
-          ),
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
         ),
         Text(
           'Podcasts',
-           style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16
-          ),
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
         ),
-        // Text(
-        //   'Xem thêm',
-        //    style: TextStyle(
-        //     fontWeight: FontWeight.w500,
-        //     fontSize: 16
-        //   ),
-        // ),
       ],
     );
   }
